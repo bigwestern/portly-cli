@@ -1,4 +1,5 @@
 
+*********
 Mr Portly
 *********
 
@@ -10,7 +11,7 @@ want.
 
 
 Installation
-------------
+============
 
 I haven't registered this package with any python package website so
 you'll need to tell your python install manually like so::
@@ -20,7 +21,7 @@ you'll need to tell your python install manually like so::
 
     
 Getting Started
----------------
+===============
 
 Follow these steps after you have successfully installed the package
 into your python environment.  The assumption made in the following
@@ -28,7 +29,7 @@ commands is that your python environment has been activated and is
 available at the command line.
 
 1. Create a config file
-***********************
+-----------------------
 
 The following command will place a `.portly.ini` file in your home
 diectory::
@@ -36,7 +37,7 @@ diectory::
     $ portly init > .portly.ini
 
 2.  Add your portal creds to the config file
-********************************************
+--------------------------------------------
     
 Edit the `.portly.ini` file and enter the credentials of the portal
 environments you want to access.  Here's an example::
@@ -53,7 +54,7 @@ environments you want to access.  Here's an example::
   
 
 3.  Check the config is valid
-*****************************
+-----------------------------
 
 Third, check the change to the config is holding up OK by running the
 `info` command::
@@ -62,14 +63,14 @@ Third, check the change to the config is holding up OK by running the
   
 
 3.  Check you can connect to your portal
-****************************************
+----------------------------------------
   
 Test that you can connect to the portal env using the `list` command::
 
   $ portly list agol
 
 4.  Copy some items between environments
-****************************************
+----------------------------------------
 
 We now should be setup to do something.  Try a copy of portal items
 like so::
