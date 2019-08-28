@@ -9,6 +9,10 @@ from portlycli.config import loader, find_config
 from portlycli.files import item_to_file, get_download_path
 
 import portlycli.session as session
+import portlycli.defaults as defaults
+
+def init_command(args):
+    print(defaults.CONFIG_FILE_TEMPLATE)
 
 def info_command(args):
     print("Mr. Portly is taking direction from: '%s'" % (args.conf_path))
@@ -74,6 +78,9 @@ def main():
     
     subparsers = parser.add_subparsers()
 
+    parser_init = subparsers.add_parser('init')
+    parser_init.set_defaults(func=init_command)
+    
     parser_info = subparsers.add_parser('info')
     parser_info.set_defaults(func=info_command)
     
@@ -105,4 +112,3 @@ def main():
     
     args.func(args)
 
-    print('Done.')

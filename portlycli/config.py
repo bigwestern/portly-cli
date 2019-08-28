@@ -1,6 +1,7 @@
 import os
 import configparser
 from portlycli.models import Credentials
+import portlycli.defaults as defaults
 
 class Config(object):
 
@@ -54,7 +55,7 @@ def find_file_in_syspath(fn):
                 return os.path.join(root, fn)    
 
 def find_config():
-    return find_file_in_syspath(".portly.ini")
+    return find_file_in_syspath(defaults.CONFIG_FILE_NAME)
     
 def loader(args):
 

@@ -28,7 +28,7 @@ setup_options = dict(
     author='Ben Hall',
     scripts=['bin/portly', 'bin/portly.cmd'],
     packages=find_packages(exclude=['tests*']),
-    license="Apache License 2.0",
+    license="GNU General Public License, version 3",
 )
 
 setup(**setup_options)
