@@ -70,7 +70,7 @@ Third, check the change to the config is holding up OK by running the
 3.  Check you can connect to your portal
 ----------------------------------------
   
-Test that you can connect to the portal env using the `list` command::
+Test that you can connect to the portal env using the ``list`` command::
 
   $ portly list agol
 
@@ -81,5 +81,3 @@ We now should be setup to do something.  Try a copy of portal items
 like so::
 
   $ portly copy agol myportal
-
-  

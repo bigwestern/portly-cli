@@ -5,6 +5,7 @@ from urllib.request import Request
 import json
 
 from portlycli.models import AuthenticatedPortal
+import portlycli.session as session
 
 def generate_token(creds):
     '''Retrieves a token to be used with API requests.'''
@@ -172,7 +173,7 @@ def get_user_content(username, portalUrl, token):
 
 def get_owner(authenticatedPortal):
     portalUrl, token = authenticatedPortal
-    matches = [cred[1] for cred in cfg.creds.values() if cred[0] == portalUrl]
+    matches = [cred.user for cred in session.config.creds.values() if cred.url == portalUrl]
     if len(matches) > 0:
         return matches[0]
     else:
@@ -184,17 +185,23 @@ def get_destination_folder(authenticatedPortal):
     folderId = ''
     owner = get_owner(authenticatedPortal)    
     destUser = get_user_content(owner, portalUrl, token)
+
     for folder in destUser['folders']:
         if folder['title'] == folder:
             folderId = folder['id']
     return folderId
 
-
+def no_nones(d):
+    for key, value in d.items():
+        if value is None:
+            d[key] = ''
+    return d
         
 def add_item(username, folder, description, data, portalUrl, token, thumbnailUrl=''):
     '''Creates a new item in a user's content.'''
-    print(description)
-    desc = json.loads(description)    
+
+    desc = json.loads(description)
+            
     print("title: '%s'; description: '%s'" % (desc['title'], desc['description']))
 
     # merge
@@ -209,8 +216,12 @@ def add_item(username, folder, description, data, portalUrl, token, thumbnailUrl
 
     # mixin
     post_params = {**desc, **add_item_params}
-    print(post_params)
-    parameters = urlencode(post_params).encode()    
+
+    # None values need to be empty strings before posting to portal
+    no_nones(post_params)
+    
+    parameters = urlencode(post_params).encode()
+
     url_parts = [portalUrl, 'sharing/rest/content/users', username]
 
     if folder:
@@ -224,24 +235,24 @@ def add_item(username, folder, description, data, portalUrl, token, thumbnailUrl
     req = Request(addItemUrl, data=parameters)
     response = urlopen(req).read()
     return response
-        
 
-def upload_items(authenticatedPortal, portalData):
-    portalUrl, token = authenticatedPortal
 
-    owner = get_owner(authenticatedPortal)
-    folder = get_destination_folder(authenticatedPortal)
+def upload_items(authenticated_portal, portal_data):
+    portalUrl, token = authenticated_portal
+
+    owner = get_owner(authenticated_portal)
+    folder = get_destination_folder(authenticated_portal)
     
     print("Copying %d item(s) to portal: '%s' in folder: '%s' as user: '%s'" %
-          (len(portalData), portalUrl, folder, owner))
+          (len(portal_data), portalUrl, folder, owner))
     wins = 0
     fails = 0    
-    for data in portalData:
+    for datum in portal_data:
         try:
-            item_id, description, data, thumbnailUrl = data
+            item_id, item_title, description, data, thumbnailUrl = datum
             item = json.loads(description)
             status = add_item(owner, folder, description, data, portalUrl, token, thumbnailUrl)
-            result = json.loads(status)            
+            result = json.loads(status)
             if 'success' in result:
                 wins += 1                
                 print('successfully copied "%s": "%s"' % (item['type'], item['title']))
@@ -259,4 +270,4 @@ def upload_items(authenticatedPortal, portalData):
             print('Exception posting item %s: %s' % (item['type'],item['title']))
             print(e.message)
 
-        return (wins, fails, len(portalData))
+        return (wins, fails, len(portal_data))

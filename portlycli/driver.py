@@ -4,7 +4,7 @@ import sys
 
 from portlycli.portal import generate_token
 from portlycli.portal import search_portal, list_items
-from portlycli.portal import get_items
+from portlycli.portal import get_items, upload_items
 from portlycli.config import loader, find_config
 from portlycli.files import item_to_file, get_download_path
 
@@ -52,22 +52,22 @@ def download_command(args):
 def copy_command(args):
     source_creds = session.config.creds[args.source]
     if source_creds:
-        sourcePortal = generate_token(source_creds)
+        source_portal = generate_token(source_creds)
     else:
         return False
     
     destination_creds = session.config.creds[args.destination]    
     if destination_creds:
-        destinationPortal = generate_token(destination_creds)
+        destination_portal = generate_token(destination_creds)
     else:
         return False
 
     # Get a list of the content matching the query.
-    content = search_portal(sourcePortal, query=args.query)
-    portalData = get_items(sourcePortal, content)
-    upload(destinationPortal, portalData)
+    content = search_portal(source_portal, query=args.query)
+    portal_data = get_items(source_portal, content)
+    upload_items(destination_portal, portal_data)
 
-    return portalData
+    return portal_data
 
     
 def main():
