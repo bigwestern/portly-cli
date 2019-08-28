@@ -4,7 +4,7 @@ Mr Portly
 *********
 
 Mr Portly is a simple command line that move `ArcGIS for Portal
-<https://enterprise.arcgis.com/en/portal/latest/use/what-is-portal-for-arcgis-.htm>`
+<https://enterprise.arcgis.com/en/portal/latest/use/what-is-portal-for-arcgis-.htm>`_
 content items between instances.  To use this tool you'll need access
 to one or more ArcGIS for Portal instances.  If you don't what any of
 that is then best walk away now.
@@ -12,7 +12,7 @@ that is then best walk away now.
 Mr Porty does not handle any dependencies between items, nor republish
 services and remap those services within the destination instance.
 This tool is based on a `sample script
-<https://enterprise.arcgis.com/en/portal/latest/administer/linux/example-copy-content.htm>`
+<https://enterprise.arcgis.com/en/portal/latest/administer/linux/example-copy-content.htm>`_
 published to the Esri's help pages.  All I have done here is wrap the
 script in a CLI, as is my bias.
 
