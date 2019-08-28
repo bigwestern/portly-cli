@@ -3,21 +3,26 @@
 Mr Portly
 *********
 
-This comand line tool let's copy portal items between environments.
-It does not handle any dependencies between items nor republish
-services.  The tool is base on a script published to the Esri help
-pages.  All I have done is placed a CLI wrapper around it, as is my
-want.
+Mr Portly is a simple command line that move `ArcGIS for Portal
+<https://enterprise.arcgis.com/en/portal/latest/use/what-is-portal-for-arcgis-.htm>`
+content items between instances.  To use this tool you'll need access
+to one or more ArcGIS for Portal instances.  If you don't what any of
+that is then best walk away now.
+
+Mr Porty does not handle any dependencies between items, nor republish
+services and remap those services within the destination instance.
+This tool is based on a `sample script
+<https://enterprise.arcgis.com/en/portal/latest/administer/linux/example-copy-content.htm>`
+published to the Esri's help pages.  All I have done here is wrap the
+script in a CLI, as is my bias.
 
 
 Installation
 ============
 
-I haven't registered this package with any python package website so
-you'll need to tell your python install manually like so::
+You'll need to use ``pip`` to directly install Mr Portly from github::
 
-    $ git clone thisrepo
-    $ pip install thisrepo
+    $ pip install -e https://github.com/bigwestern/portly-cli.git
 
     
 Getting Started
@@ -31,7 +36,7 @@ available at the command line.
 1. Create a config file
 -----------------------
 
-The following command will place a `.portly.ini` file in your home
+The following command will place a ``.portly.ini`` file in your home
 diectory::
 
     $ portly init > .portly.ini
@@ -39,7 +44,7 @@ diectory::
 2.  Add your portal creds to the config file
 --------------------------------------------
     
-Edit the `.portly.ini` file and enter the credentials of the portal
+Edit the ``.portly.ini`` file and enter the credentials of the portal
 environments you want to access.  Here's an example::
 
   [agol]
@@ -57,7 +62,7 @@ environments you want to access.  Here's an example::
 -----------------------------
 
 Third, check the change to the config is holding up OK by running the
-`info` command::
+``info`` command::
 
   $ portly info
   
