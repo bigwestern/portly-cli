@@ -12,8 +12,8 @@ downloads = .\portal-content
 ; and setting the url, user, and passwd properties.  Each section 
 ; will need to be unique.
 ;
-[agol]
-url = https://qgsp.maps.arcgis.com
+[jack@agol]
+url = https://www.arcgis.com
 user = wheresjacky
 passwd = qwerty12
 

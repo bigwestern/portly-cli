@@ -20,11 +20,29 @@ script in a CLI, as is my bias.
 Installation
 ============
 
-You'll need to use ``pip`` to directly install Mr Portly from github::
+You have two options with installing this package.
 
-    $ pip install -e https://github.com/bigwestern/portly-cli.git
+Option 1: You don't want to edit the source code
+------------------------------------------------
 
-    
+If you don't want to change the tool in anyway then install the
+package straight into your python environment.  Make sure you've done
+your virtualenv setup beforehand::
+
+    $ pip install git+https://github.com/bigwestern/portly-cli
+  
+Option 2: You want to install the package and also dit the source code
+----------------------------------------------------------------------
+
+If you want to make changes to the source code then you will need to
+clone the repo first and then advise the python packaging environment
+to reference the cloned repo.  Here's how to go about that::
+
+    $ git clone https://github.com/bigwestern/portly-cli.git
+    $ cd portly-cli
+    $ pip install -e .
+
+
 Getting Started
 ===============
 
@@ -37,7 +55,7 @@ available at the command line.
 -----------------------
 
 The following command will place a ``.portly.ini`` file in your home
-diectory::
+directory::
 
     $ portly init > .portly.ini
 
@@ -47,8 +65,8 @@ diectory::
 Edit the ``.portly.ini`` file and enter the credentials of the portal
 environments you want to access.  Here's an example::
 
-  [agol]
-  url = https://qgsp.maps.arcgis.com
+  [jack@agol]
+  url = https://www.arcgis.com
   user = wheresjacky
   passwd = qwerty12
 
@@ -72,7 +90,7 @@ Third, check the change to the config is holding up OK by running the
   
 Test that you can connect to the portal env using the ``list`` command::
 
-  $ portly list agol
+  $ portly list jack@agol
 
 4.  Copy some items between environments
 ----------------------------------------
@@ -80,4 +98,4 @@ Test that you can connect to the portal env using the ``list`` command::
 We now should be setup to do something.  Try a copy of portal items
 like so::
 
-  $ portly copy agol myportal
+  $ portly copy jack@agol myportal
