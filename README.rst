@@ -31,8 +31,8 @@ your virtualenv setup beforehand::
 
     $ pip install git+https://github.com/bigwestern/portly-cli
   
-Option 2: You want to install the package and also dit the source code
-----------------------------------------------------------------------
+Option 2: You want to install the package and also edit the source code
+-----------------------------------------------------------------------
 
 If you want to make changes to the source code then you will need to
 clone the repo first and then advise the python packaging environment
@@ -54,8 +54,8 @@ available at the command line.
 1. Create a config file
 -----------------------
 
-The following command will place a ``.portly.ini`` file in your home
-directory::
+The following command will place a ``.portly.ini`` file in your current
+directory (You might wsnt to place the file in your home directory)::
 
     $ portly init > .portly.ini
 
