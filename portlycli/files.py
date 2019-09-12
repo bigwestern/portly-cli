@@ -1,11 +1,19 @@
 import os
+import json
 
-def to_json_file(file_path, data):
+def to_json_file(file_path, data, is_dict_already=False):
     validjson = False
     try:
-        nicejson = json.dumps(json.loads(data), indent=2)
+
+        if is_dict_already:
+            jdict = data
+        else:
+            jdict = json.loads(data)
+            
+        nicejson = json.dumps(jdict, indent=2)
         validjson = True
-    except:
+    except ValueError as e:
+        print(e)
         print("Can't beautify json for file %s" % (file_path))
         
     if validjson:
@@ -34,17 +42,29 @@ def get_download_path(content_path, authenticated_portal):
 
 def item_to_file(directory, title, data):
     item_files = []
-    item_id, item_title, desc, data, thumbnail = data
-    if desc:
+    if data.desc:
         item_files.append(
-            to_json_file(os.path.join(directory, ".".join([title, 'desc', 'json'])), desc))
+            to_json_file(
+                os.path.join(directory, ".".join([data.title, 'desc', 'json'])),
+                data.desc,
+                True))
         
-    if data:
+    if data.data:
         item_files.append(
-            to_json_file(os.path.join(directory, ".".join([title, 'data', 'json'])), data))
+            to_json_file(
+                os.path.join(directory, ".".join([data.title, 'data', 'json'])), data.data))
 
-    if thumbnail:
+    if data.thumbnail_url:
         item_files.append(
-            to_thumbnail_file(os.path.join(directory, ".".join([title, 'thumbnail', 'txt'])), thumbnail))
+            to_thumbnail_file(
+                os.path.join(directory, ".".join([data.title, 'thumbnail', 'txt'])), data.thumbnail_url))
 
     return item_files
+
+def to_csv(csv_path, header, rows):
+    file = open(csv_path, "w")                
+    file.write(','.join(str(c) for c in header) + '\n')
+    for row in rows:
+        file.write(','.join(str(i) for i in row) + '\n')
+    file.close()
+    return csv_path

@@ -4,7 +4,7 @@ from urllib.request import urlopen
 from urllib.request import Request
 import json
 
-from portlycli.models import AuthenticatedPortal
+from portlycli.models import AuthenticatedPortal, PortalItem, PortalData
 import portlycli.session as session
 
 def generate_token(creds):
@@ -113,8 +113,8 @@ def list_items(authenticatedPortal, searchQuery):
     for item in content:
         json_desc = get_item_description(item['id'], portalUrl, token)
         desc = json.loads(json_desc)
-        of_interest = (desc['name'], desc['title'], desc['type'], item['id'])
-        print("name: '%s'; title: '%s'; type: '%s'; id: %s" % of_interest)
+        of_interest = PortalItem(desc['name'], desc['title'], desc['type'], item['id'], desc, json_desc)
+        print("name: '%s'; title: '%s'; type: '%s'; id: %s" % of_interest[:4])
         items.append(of_interest)
         
     return items
@@ -146,12 +146,14 @@ def get_item(itemId, authenticatedPortal):
     thumbnail = descripto['thumbnail']
     
     if thumbnail:
-        thumbnailUrl = (sourcePortal + '/sharing/rest/content/items/' +
+        thumbnail_url = (sourcePortal + '/sharing/rest/content/items/' +
                         itemId + '/info/' + thumbnail +
                         '?token=' + sourceToken)
     else:
-        thumbnailUrl = ''
-    return (itemId, title, desc, data, thumbnail)
+        thumbnail_url = ''
+
+    return PortalData(descripto['name'], title, descripto['type'],
+                      itemId, descripto, desc, data, thumbnail_url)
 
 
 def get_items(authenticatedPortal, content):
@@ -247,27 +249,27 @@ def upload_items(authenticated_portal, portal_data):
           (len(portal_data), portalUrl, folder, owner))
     wins = 0
     fails = 0    
-    for datum in portal_data:
+    for d in portal_data:
         try:
-            item_id, item_title, description, data, thumbnailUrl = datum
-            item = json.loads(description)
-            status = add_item(owner, folder, description, data, portalUrl, token, thumbnailUrl)
+            status = add_item(owner, folder,
+                              d.desc_str, d.data,
+                              portalUrl, token, d.thumbnail_url)
             result = json.loads(status)
             if 'success' in result:
                 wins += 1                
-                print('successfully copied "%s": "%s"' % (item['type'], item['title']))
+                print('successfully copied "%s": "%s"' % (d.type, d.title))
             elif 'error' in result:
                 fails += 1                
-                print('error in add item response for type %s: %s' % (item['type'],item['title']))
+                print('error in add item response for type %s: %s' % (d.type,d.title))
                 print('error message: "%s"' % (result['error']['message']))
                 for detail in result['error']['details']:
                     print(detail)
             else:
                 fails += 1                
-                print('error copying %s: %s' % (item['type'], item['title']))
+                print('error copying %s: %s' % (d.type, d.title))
         except Exception as e:
             fails += 1
-            print('Exception posting item %s: %s' % (item['type'],item['title']))
+            print('Exception posting item %s: %s' % (d.type, d.title))
             print(e.message)
 
         return (wins, fails, len(portal_data))

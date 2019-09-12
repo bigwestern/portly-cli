@@ -6,7 +6,8 @@ from portlycli.portal import generate_token
 from portlycli.portal import search_portal, list_items
 from portlycli.portal import get_items, upload_items
 from portlycli.config import loader, find_config
-from portlycli.files import item_to_file, get_download_path
+from portlycli.files import item_to_file, get_download_path, to_csv
+from portlycli.dependencies import find_dependencies
 
 import portlycli.session as session
 import portlycli.defaults as defaults
@@ -24,9 +25,11 @@ def list_command(args):
     source_creds = session.config.creds[args.env]
     sourcePortal = generate_token(source_creds)
     items = list_items(sourcePortal, args.query)
+    # only write out a subset of interesting columns from the listed items
+    interesting = [t[:4] for t in items]
     if args.csvfile:
         print("Writing queried items to file: '%s'" % (args.csvfile))
-        to_csv(args.csvfile, ('name','title','type', 'id'), items)
+        to_csv(args.csvfile, ('name','title','type','id'), interesting)
     return items
 
 def download_command(args):
@@ -43,9 +46,7 @@ def download_command(args):
     # store all content locally
     portal_data = get_items(source_portal, content)  
     for item in portal_data:
-        item_id, title, desc, data, thumbnail = item
-        files = item_to_file(download_path, title, item)
-        
+        files = item_to_file(download_path, item.title, item)
     return portal_data
 
 
@@ -66,6 +67,25 @@ def copy_command(args):
     content = search_portal(source_portal, query=args.query)
     portal_data = get_items(source_portal, content)
     upload_items(destination_portal, portal_data)
+
+    return portal_data
+
+
+def deps_command(args):
+    source_creds = session.config.creds[args.source]
+    if source_creds:
+        source_portal = generate_token(source_creds)
+    else:
+        return False
+    
+    # Get a list of the content matching the query.
+    content = search_portal(source_portal, query=args.query)
+    portal_data = get_items(source_portal, content)
+    for pd in portal_data:
+        deps = find_dependencies(pd)
+        print("item '%s' of type: '%s' has the following dependencies:" % (pd.title, pd.type))
+        for dep in deps:
+            print("\tid:%s" % (dep)) 
 
     return portal_data
 
@@ -102,6 +122,11 @@ def main():
     parser_copy.add_argument('-q', '--query', dest='query', default=None)
     parser_copy.set_defaults(func=copy_command)
 
+    parser_deps = subparsers.add_parser('deps')
+    parser_deps.add_argument('source')
+    parser_deps.add_argument('-q', '--query', dest='query', default=None)
+    parser_deps.set_defaults(func=deps_command)
+    
     args = parser.parse_args()
 
     config = loader(args)
