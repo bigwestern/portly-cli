@@ -20,14 +20,17 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+requires = ['jsonpath-ng>=1.4.3','networkx>=2.3']
+
 setup_options = dict(
     name='portlycli',
     version=find_version("portlycli", "__init__.py"),
-    description='Handy stuff for Portal.',
+    description='CLI utility to move Portal for ArcGIS items between instances.',
     long_description=read('README.rst'),
     author='Ben Hall',
     scripts=['bin/portly', 'bin/portly.cmd'],
     packages=find_packages(exclude=['tests*']),
+    install_requires=requires,    
     license="GNU General Public License, version 3",
 )
 

@@ -7,7 +7,7 @@ from portlycli.portal import search_portal, list_items
 from portlycli.portal import get_items, upload_items
 from portlycli.config import loader, find_config
 from portlycli.files import item_to_file, get_download_path, to_csv
-from portlycli.dependencies import find_dependencies
+from portlycli.dependencies import find_dependencies, Graph
 
 import portlycli.session as session
 import portlycli.defaults as defaults
@@ -77,16 +77,28 @@ def deps_command(args):
         source_portal = generate_token(source_creds)
     else:
         return False
+
+    graph = Graph()
     
     # Get a list of the content matching the query.
     content = search_portal(source_portal, query=args.query)
     portal_data = get_items(source_portal, content)
     for pd in portal_data:
+        graph.add_root(pd)        
         deps = find_dependencies(pd)
+
+        # create a query to get all the dependencies
+        ids_query = " OR ".join(["id:{}".format(dep) fro dep in deps])
+        
+        # Get a list of the content matching the query.
+        deps_content = search_portal(source_portal, query=ids_query)
+
+        # store all content locally
+        deps_portal_data = get_items(source_portal, deps_content)  
+        
         print("item '%s' of type: '%s' has the following dependencies:" % (pd.title, pd.type))
         for dep in deps:
             print("\tid:%s" % (dep)) 
-
     return portal_data
 
     
