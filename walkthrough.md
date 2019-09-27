@@ -25,6 +25,7 @@ Finding a solution to this problem has meant:
 *  Finding the dependencies of portal items;
 *  Modelling those dependencies in a data structure.
 
+
 Finding dependencies
 --------------------
 
@@ -41,7 +42,7 @@ concept only these two types have been defined::
         'Web Mapping Application': webapp_dependencies,
         'Web Map': webmap_dependencies
 
-Next, the JSON is searched using `jsonpath_ng` like so::
+Next, the JSON is searched using ``jsonpath_ng`` like so::
 
     operational_expression = parse('operationalLayers[*].itemId')
 
@@ -52,6 +53,7 @@ and like so::
 Once the relevant item ids have been found then the portal is queried
 again to find those items.
 
+
 Modelling dependencies
 ----------------------
 
@@ -60,19 +62,20 @@ the items to load them into a dependency graph.  An item with no
 children has no dependencies.  The dependency graph makes it easy to
 order the items from least dependent to most dependent as well as
 providing routines to define the parent items that depend on a child
-item.  The `networkx` DiGraph object has used to achieve this.
+item.  The ``networkx`` DiGraph object has used to achieve this.
+
 
 Consistent identifiers
 ----------------------
 
 The approach taken here has been to:
 
-*  Assign a new eight character long id (`dep_id`) to portal items
+*  Assign a new eight character long id (``dep_id``) to portal items
    that are a dependency for other items
 *  Only alter the JSON of a portal item that contain dependencies such
-   that they use the new `dep_id`
+   that they use the new ``dep_id``
 *  Write the all the portal items to disk
-*  Save the information about the dependencies to the `project.json`.
+*  Save the information about the dependencies to the ``project.json``.
 
 
 Risks
@@ -84,7 +87,3 @@ Risks
 2.  A suitable matching strategy cannot be found between source and
     destination portals.
 
-
-
-
-   

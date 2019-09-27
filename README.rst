@@ -57,7 +57,7 @@ available at the command line.
 The following command will place a ``.portly.ini`` file in your current
 directory (You might wsnt to place the file in your home directory)::
 
-    $ portly init > .portly.ini
+    $ portly template > .portly.ini
 
 2.  Add your portal creds to the config file
 --------------------------------------------

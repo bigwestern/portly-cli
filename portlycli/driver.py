@@ -179,6 +179,9 @@ def main():
     
     subparsers = parser.add_subparsers()
 
+    parser_template = subparsers.add_parser('template')
+    parser_template.set_defaults(func=template_command,parser_name='template')
+    
     parser_init = subparsers.add_parser('init')
     parser_init.set_defaults(func=init_command,parser_name='init')
     
@@ -213,7 +216,7 @@ def main():
 
     # init parser shows the user an example config so don't bother
     # loading the config in this instance.
-    if args.parser_name != 'init':
+    if args.parser_name not in ['init', 'template']:
         config = loader(args)
         if not config:
             sys.exit()
