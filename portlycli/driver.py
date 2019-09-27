@@ -115,16 +115,20 @@ def copy_command(args):
     return portal_data
 
 
-def retrieve_deps(source_portal, portal_data):
+def retrieve_deps(source_portal, portal_data, last_parent=None):
 
     graph = Graph()    
     
     for parent in portal_data:
 
-        graph.add_root(parent)        
+        if last_parent is None:
+            graph.add_root(parent)        
+        else:
+            graph.add_child(last_parent, parent)
+                            
         deps = find_dependencies(parent)
 
-        if len(deps) > 0:
+        if deps is not None and len(deps) > 0:
             
             # create a query to get all the dependencies
             ids_query = " OR ".join(["id:{}".format(dep) for dep in deps])
@@ -141,6 +145,9 @@ def retrieve_deps(source_portal, portal_data):
             for child in children:
                 print("\tid:%s" % (child.title)) 
                 graph.add_child(parent, child)
+
+            if len(children) > 0:
+                retrieve_deps(source_portal, children, parent)
                 
         else:
             print("No dependencies for item '%s' of type: '%s'." % (parent.title, parent.type))    

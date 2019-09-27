@@ -124,6 +124,7 @@ class Graph(object):
     def create_remapping_list(self):
         remaps = []
         for dep_id in nx.dfs_postorder_nodes(self.graph):
+            print("'%s' '%s'" % (self.graph.node[dep_id]['type'], self.graph.node[dep_id]['title']))
             if self.has_parents(dep_id):
                 remaps.append((self.graph.node[dep_id]['id'],dep_id))
         return remaps
