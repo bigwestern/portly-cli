@@ -1,5 +1,6 @@
 import os
 import json
+import portlycli.defaults as defaults
 
 def to_json_file(file_path, data, is_dict_already=False):
     validjson = False
@@ -35,29 +36,34 @@ def to_thumbnail_file(file_path, data):
 def url_to_dir(url):
     return url.lstrip('htps:/.')
 
-def get_download_path(content_path, authenticated_portal):
+def get_download_path(content_path, authenticated_portal=None):
+    cwd = os.getcwd()
     return os.path.join(
-        content_path,
-        url_to_dir(authenticated_portal.url))
+        cwd,
+        content_path)
+#        url_to_dir(authenticated_portal.url))
 
-def item_to_file(directory, title, data):
+def item_to_file(directory, title, data, relabeller=lambda x: x):
     item_files = []
+
     if data.desc:
         item_files.append(
             to_json_file(
-                os.path.join(directory, ".".join([data.title, 'desc', 'json'])),
+                os.path.join(directory, ".".join([data.title, data.type, 'desc', 'json'])),
                 data.desc,
                 True))
         
     if data.data:
         item_files.append(
             to_json_file(
-                os.path.join(directory, ".".join([data.title, 'data', 'json'])), data.data))
+                os.path.join(directory, ".".join([data.title, data.type, 'data', 'json'])),
+                relabeller(data.data)))
 
     if data.thumbnail_url:
         item_files.append(
             to_thumbnail_file(
-                os.path.join(directory, ".".join([data.title, 'thumbnail', 'txt'])), data.thumbnail_url))
+                os.path.join(directory, ".".join([data.title, data.type, 'thumbnail', 'txt'])),
+                relabeller(data.thumbnail_url)))
 
     return item_files
 
@@ -68,3 +74,4 @@ def to_csv(csv_path, header, rows):
         file.write(','.join(str(i) for i in row) + '\n')
     file.close()
     return csv_path
+

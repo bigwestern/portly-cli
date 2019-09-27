@@ -4,6 +4,7 @@ this_module = sys.modules[__name__]
 
 config = None
 args = None
+project = None
 
 def set_derived_defaults(args, config):
     if 'query' in args and args.query is None:

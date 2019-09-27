@@ -1,5 +1,6 @@
 
 CONFIG_FILE_NAME = ".portly.ini"
+PROJECT_FILE_NAME = "project.json"
 
 CONFIG_FILE_TEMPLATE = """;
 ; Config file for Mr Portly.

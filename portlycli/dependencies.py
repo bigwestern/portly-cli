@@ -2,15 +2,36 @@ import json
 from jsonpath_ng import jsonpath, parse
 import networkx as nx
 
+import uuid
+from functools import partial
+
+def relabeller(remaps, data):
+    if isinstance(data, (bytes, bytearray)):
+        data = data.decode()
+
+    for remap in remaps:
+        portal_id, dep_id = remap
+        data = data.replace(portal_id, dep_id)
+        
+    return data
+
 def to_json(portal_data):
     try:
         jdict = json.loads(portal_data.data)
+        return jdict
     except ValueError as e:
         print(e)
         print("Can't beautify json for item %s" % (portal_data.id))
-    return jdict
+        return dict()
 
 def webapp_dependencies(portal_data):
+    if not portal_data.data:
+        print()
+        print("Item %s references an externally hosted webapp at %s" %
+              (portal_data.id,portal_data.desc['url']))
+        print("\t  No JSON data available to check dependencies.")
+        return []
+        
     webapp = to_json(portal_data)
     expression = parse('map.itemId')
     return [match.value for match in expression.find(webapp)]
@@ -43,20 +64,71 @@ class Graph(object):
     
     graph = nx.DiGraph()
 
+    def generate_id(self):
+        return str(uuid.uuid4())[:8]
+    
+    def find_node_by_portal_id(self, id):
+        for n in self.graph.nodes(data=True):
+            dep_id, data = n
+            if 'id' in data:
+                if data['id'] == id:
+                    return dep_id
+        return None
+
     def add_item(self, item):
-        exists = self.graph[item.id]
-        if not exists:
-            self.graph.add_node(item.id)
-        else:
+        dep_id = self.find_node_by_portal_id(item.id)
+        if dep_id:
             print("item '%s' with id %s already exists in graph." % (item.title, item.id))
-        return self.graph[item.id]
+        else:
+            dep_id = self.generate_id()
+            print("adding new item: %s" % (item.id))
+            self.graph.add_node(dep_id,
+                                dep_id=dep_id,
+                                id=item.id,
+                                type=item.type,
+                                title=item.title,
+                                portal_data=item)
+            
+        return self.graph.node[dep_id]
     
     def add_child(self, parent_item, child_item):
-        parent_node_id = self.add_item(parent_item)
-        child_node_id = self.add_item(child_item)
-        self.graph.add_edge(parent_node_id,child_node_id)
+        parent_node = self.add_item(parent_item)
+        child_node = self.add_item(child_item)
+        self.graph.add_edge(parent_node['dep_id'],child_node['dep_id'])
         return self.graph
         
-    def add_root(self, portal_item):
-        self.graph.add_node(portal_item.id)
+    def add_root(self, item):
+        dep_id = self.generate_id()        
+        self.graph.add_node(dep_id,
+                            dep_id=dep_id,
+                            id=item.id,
+                            type=item.type,
+                            title=item.title,
+                            portal_data=item)
 
+
+    def has_parents(self, dep_id):
+        parents = self.graph.predecessors(dep_id)
+        return len(list(parents)) > 0
+        
+    def parents(self, dep_id):
+        parents = self.graph.predecessors(dep_id)
+        return list(parents)
+        
+    def postorder(self):
+        return [self.graph.node[id] for id in list(nx.dfs_postorder_nodes(self.graph))]
+    
+    def traversal(self):
+        return [self.graph.node[id]['portal_data'] for id in list(nx.dfs_postorder_nodes(self.graph))]
+
+    def create_remapping_list(self):
+        remaps = []
+        for dep_id in nx.dfs_postorder_nodes(self.graph):
+            if self.has_parents(dep_id):
+                remaps.append((self.graph.node[dep_id]['id'],dep_id))
+        return remaps
+            
+    def create_relabeller(self):
+        remaps = self.create_remapping_list()
+        print(remaps)
+        return partial(relabeller, remaps)
