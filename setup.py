@@ -20,7 +20,7 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-requires = ['jsonpath-ng>=1.4.3','networkx>=2.2','jsonpickle>=1.2']
+requires = ['jsonpath-ng>=1.4.3','networkx>=2.2,<2.3','jsonpickle>=1.2']
 
 setup_options = dict(
     name='portlycli',

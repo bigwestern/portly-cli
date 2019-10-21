@@ -78,7 +78,7 @@ class Graph(object):
     def add_item(self, item):
         dep_id = self.find_node_by_portal_id(item.id)
         if dep_id:
-            print("item '%s' with id %s already exists in graph." % (item.title, item.id))
+            print("item '%s' (dep id: '%s') with id %s already exists in graph." % (item.title, dep_id, item.id))
         else:
             dep_id = self.generate_id()
             print("adding new item: %s" % (item.id))
@@ -88,17 +88,21 @@ class Graph(object):
                                 type=item.type,
                                 title=item.title,
                                 portal_data=item)
-            
+
+        print(self.graph.node)
         return self.graph.node[dep_id]
     
     def add_child(self, parent_item, child_item):
+        print("parent:")
         parent_node = self.add_item(parent_item)
+        print("child:")        
         child_node = self.add_item(child_item)
         self.graph.add_edge(parent_node['dep_id'],child_node['dep_id'])
         return self.graph
         
     def add_root(self, item):
-        dep_id = self.generate_id()        
+        dep_id = self.generate_id()
+        print("add root '%s'" % (dep_id))
         self.graph.add_node(dep_id,
                             dep_id=dep_id,
                             id=item.id,

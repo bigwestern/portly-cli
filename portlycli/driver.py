@@ -143,7 +143,7 @@ def retrieve_deps(source_portal, portal_data, last_parent=None):
                   (parent.title, parent.type))
             
             for child in children:
-                print("\tid:%s" % (child.title)) 
+                print("\tchild id:%s" % (child.title)) 
                 graph.add_child(parent, child)
 
             if len(children) > 0:
@@ -170,7 +170,39 @@ def deps_command(args):
 
     return graph
 
-    
+def origin_command(args):
+    dest_creds = session.config.creds[args.env]
+    dest_portal = generate_token(dest_creds)
+    project = session.project
+
+    if args.action == 'add':
+
+        # add a destination origin
+        project.add_origin(dest_portal, dest_creds)
+
+        # save the changes
+        project.create_project_file()
+
+    if args.action == 'update-ids':
+
+        service_deps = project.service_dependencies(dest_portal)
+        print(service_deps)
+
+        dest_ids = []
+        
+        for dep in service_deps:
+            dep_id, clauses = dep
+            terms = ["{}:{}".format(k, v) for k, v in clauses.items()]
+            query = " AND ".join(terms)
+            print(query)
+        
+            # Get a list of the content matching the query.
+            content = search_portal(dest_portal, query=query)
+            if len(content) == 1:
+                dest_ids.append((dep_id, content[0]['id']))
+            
+        print(dest_ids)
+ 
 def main():
 
     parser = argparse.ArgumentParser()
@@ -211,6 +243,11 @@ def main():
     parser_deps.add_argument('source')
     parser_deps.add_argument('-q', '--query', dest='query', default=None)
     parser_deps.set_defaults(func=deps_command,parser_name='deps')
+
+    parser_origin = subparsers.add_parser('origin')
+    parser_origin.add_argument('action')
+    parser_origin.add_argument('env')    
+    parser_origin.set_defaults(func=origin_command,parser_name='origin')
     
     args = parser.parse_args()
 
@@ -228,8 +265,10 @@ def main():
         if project.has_project_file():
             session.project = project
         else:
-            print("No project file found. Try 'portly init' first.")
-            sys.exit()        
+            # download feature needs a project file
+            if args.parser_name in ['download', 'origin']:
+                print("No project file found. Try 'portly init' first.")
+                sys.exit()        
 
     args.func(args)
 
