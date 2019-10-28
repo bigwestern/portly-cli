@@ -254,10 +254,15 @@ def upload_items(authenticated_portal, portal_data):
             status = add_item(owner, folder,
                               d.desc_str, d.data,
                               portalUrl, token, d.thumbnail_url)
+            print(status)
             result = json.loads(status)
+
+            portal_id = None
+            print(result)
             if 'success' in result:
                 wins += 1                
                 print('successfully copied "%s": "%s"' % (d.type, d.title))
+                portal_id = result['id']
             elif 'error' in result:
                 fails += 1                
                 print('error in add item response for type %s: %s' % (d.type,d.title))
@@ -272,4 +277,4 @@ def upload_items(authenticated_portal, portal_data):
             print('Exception posting item %s: %s' % (d.type, d.title))
             print(e.message)
 
-        return (wins, fails, len(portal_data))
+        return (wins, fails, len(portal_data), portal_id)

@@ -43,30 +43,54 @@ def get_download_path(content_path, authenticated_portal=None):
         content_path)
 #        url_to_dir(authenticated_portal.url))
 
-def item_to_file(directory, title, data, relabeller=lambda x: x):
-    item_files = []
+def item_to_file(directory, title, data, relabeller=lambda x: x, setvars=lambda x: x):
+    item_files = {'desc': None, 'data': None, 'thumbnail_url': None}
 
     if data.desc:
-        item_files.append(
-            to_json_file(
+        item_files['desc'] = to_json_file(
                 os.path.join(directory, ".".join([data.title, data.type, 'desc', 'json'])),
-                data.desc,
-                True))
+                setvars(data.desc_str))
         
     if data.data:
-        item_files.append(
-            to_json_file(
+        item_files['data'] = to_json_file(
                 os.path.join(directory, ".".join([data.title, data.type, 'data', 'json'])),
-                relabeller(data.data)))
+                relabeller(data.data))
 
     if data.thumbnail_url:
-        item_files.append(
-            to_thumbnail_file(
+        item_files['thumbnail_url'] = to_thumbnail_file(
                 os.path.join(directory, ".".join([data.title, data.type, 'thumbnail', 'txt'])),
-                relabeller(data.thumbnail_url)))
+                relabeller(data.thumbnail_url))
 
     return item_files
 
+
+def from_json_file(file_path):
+    with open(file_path) as data:
+        s = data.read()
+        data.close()
+        return s
+    
+def from_thumbnail_file(file_path):
+    with open(file_path) as data:
+        s = data.read()
+        data.close()
+        return s
+        
+def file_to_item(files):
+    
+    item = {'desc_str': None, 'data_str': None, 'thumbnail_str': None}
+    
+    if files['desc']:
+        item['desc_str'] = from_json_file(files['desc'])
+        
+    if files['data']:
+        item['data_str'] = from_json_file(files['data'])
+
+    if files['thumbnail_url']:
+        item['thumbnail_str'] = from_thumbnail_file(files['thumbnail_url'])
+
+    return item
+    
 def to_csv(csv_path, header, rows):
     file = open(csv_path, "w")                
     file.write(','.join(str(c) for c in header) + '\n')

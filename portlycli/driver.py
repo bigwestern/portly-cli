@@ -1,18 +1,23 @@
 import argparse
 import os
 import sys
+import re
 
-from portlycli.portal import generate_token
-from portlycli.portal import search_portal, list_items
-from portlycli.portal import get_items, upload_items
+from portlycli.portal.requests import generate_token
+from portlycli.portal.requests import search_portal, list_items
+from portlycli.portal.requests import get_items, upload_items, update_item
 from portlycli.config import loader, find_config
-from portlycli.files import item_to_file, get_download_path, to_csv
-from portlycli.dependencies import find_dependencies, Graph
+from portlycli.files import item_to_file, get_download_path, to_csv, file_to_item
+from portlycli.dependencies import find_dependencies, Graph, set_dependencies, create_setvars, relabeller, create_dep_id_var
 
 from portlycli.project import Project
 
 import portlycli.session as session
 import portlycli.defaults as defaults
+
+# FIXME: rmeove these deps to somewhere else
+import json
+from portlycli.models import PortalData
 
 def template_command(args):
     print(defaults.CONFIG_FILE_TEMPLATE)
@@ -71,11 +76,14 @@ def download_command(args):
 
         graph = retrieve_deps(source_portal, portal_data)
         relabeller = graph.create_relabeller()
+        setvars = create_setvars(source_portal)
         
-        for item in graph.traversal():
-            print(item.type)
-            files = item_to_file(download_path, item.title, item, relabeller)
-
+        for node in graph.postorder():
+            item = node['portal_data']
+            print(item.type)            
+            files = item_to_file(download_path, item.title, item, relabeller, setvars)
+            node['files'] = files
+            
         # grab all the nodes in order of least amount of dependencies
         nodes = graph.postorder()
 
@@ -114,6 +122,59 @@ def copy_command(args):
 
     return portal_data
 
+def upload_command(args):
+    destination_creds = session.config.creds[args.env]
+    destination_portal = generate_token(destination_creds)
+
+    project = session.project
+
+    deps = project.derived_dependencies(destination_portal)
+
+    remaps = project.service_remaps(destination_portal)
+
+    for dep in deps:
+
+        print(remaps)
+        
+        local_item = file_to_item(dep['files'])
+
+        descripto = json.loads(local_item['desc_str'])
+        title = descripto['title']
+        thumbnail = descripto['thumbnail']
+        
+        portal_data = PortalData(descripto['name'],
+                                 title,
+                                 descripto['type'],
+                                 descripto['id'],
+                                 descripto,
+                                 local_item['desc_str'],
+                                 local_item['data_str'],
+                                 local_item['thumbnail_str'])
+
+        data_str = set_dependencies(destination_portal, portal_data, remaps)
+
+        #FIXME: Need to find a way not to have to import relabeller
+        #function in here.  set_dependencies function needs to take a
+        #string and return a changed string
+        desc_str = relabeller(remaps, portal_data.desc_str)
+        
+        dest_portal_data = PortalData(descripto['name'],
+                                      title,
+                                      descripto['type'],
+                                      descripto['id'],
+                                      descripto,
+                                      desc_str,
+                                      data_str,
+                                      local_item['thumbnail_str'])
+        
+        wins, fails, length, portal_id = upload_items(destination_portal, [dest_portal_data])
+
+        # add new portal_id to list of remaps
+        if portal_id:
+            remaps.append((create_dep_id_var(dep['depId']), portal_id))
+        else:
+            print("Error: upload to destination portal returned no id!")
+            
 
 def retrieve_deps(source_portal, portal_data, last_parent=None):
 
@@ -183,9 +244,9 @@ def origin_command(args):
         # save the changes
         project.create_project_file()
 
-    if args.action == 'update-ids':
+    if args.action == 'fetch':
 
-        service_deps = project.service_dependencies(dest_portal)
+        service_deps = project.all_dependencies(dest_portal)
         print(service_deps)
 
         dest_ids = []
@@ -194,14 +255,38 @@ def origin_command(args):
             dep_id, clauses = dep
             terms = ["{}:{}".format(k, v) for k, v in clauses.items()]
             query = " AND ".join(terms)
-            print(query)
         
-            # Get a list of the content matching the query.
+            # Get a list of the content matching the query.            
             content = search_portal(dest_portal, query=query)
             if len(content) == 1:
-                dest_ids.append((dep_id, content[0]['id']))
-            
-        print(dest_ids)
+                dest_ids.append((dep_id, content[0]['id'], content[0]['url']))
+            else:
+                print("A UNIQUE match for '%s' could not be found in '%s'" % (query, dest_portal))
+
+        # update the project file with the destination portal ids
+        project.update_portal_ids(dest_portal, dest_ids)
+
+        # save the changes
+        project.create_project_file()
+
+    if args.action == 'fix':
+        
+        webapp_origins = project.webapp_dependencies(dest_portal)
+        for webapp_origin in webapp_origins:
+
+            # make url
+            if 'serviceUrl' in webapp_origin['portal']:
+                m = re.match(r"(.*)(id=.*)", webapp_origin['portal']['serviceUrl'])            
+                print(m.group(1))
+                
+                if m.group(1) and 'id' in webapp_origin['portal']:
+                    item_url = "%sid=%s" % (m.group(1), webapp_origin['portal']['id']) 
+                    
+                    # update item
+                    result = update_item(dest_portal,
+                                         webapp_origin['portal']['id'],
+                                         {'url': item_url, 'ownerFolder': ""})
+                    
  
 def main():
 
@@ -248,7 +333,11 @@ def main():
     parser_origin.add_argument('action')
     parser_origin.add_argument('env')    
     parser_origin.set_defaults(func=origin_command,parser_name='origin')
-    
+
+    parser_upload = subparsers.add_parser('upload')
+    parser_upload.add_argument('env')    
+    parser_upload.set_defaults(func=upload_command,parser_name='upload')
+
     args = parser.parse_args()
 
     # init parser shows the user an example config so don't bother
