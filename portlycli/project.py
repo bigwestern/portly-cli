@@ -171,9 +171,11 @@ class Project(object):
     def derived_dependencies(self, dest_portal):
         derived_deps = []
         for dep in self.dependencies:
-            dest_origins = [o for o in dep['origins'] if o['portal']['url'] == dest_portal.url]
+            dest_origins = [o for o in dep['origins'] if o['portal']['url'] is not dest_portal.url]
             for dest_origin in dest_origins:
                 if dep['itemType'] not in ['Feature Service']:
                     derived_deps.append(dep)
                     
         return derived_deps
+    
+    

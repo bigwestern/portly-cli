@@ -4,8 +4,8 @@ import sys
 import re
 
 from portlycli.portal.requests import generate_token
-from portlycli.portal.requests import search_portal, list_items
-from portlycli.portal.requests import get_items, upload_items, update_item
+from portlycli.portal.requests import search_portal, list_items, get_item_description, update_item_request
+from portlycli.portal.requests import get_items, upload_items, update_item, update_copy_items
 from portlycli.config import loader, find_config
 from portlycli.files import item_to_file, get_download_path, to_csv, file_to_item
 from portlycli.dependencies import find_dependencies, Graph, set_dependencies, create_setvars, relabeller, create_dep_id_var
@@ -14,6 +14,8 @@ from portlycli.project import Project
 
 import portlycli.session as session
 import portlycli.defaults as defaults
+
+import portlycli.helper as helper
 
 # FIXME: rmeove these deps to somewhere else
 import json
@@ -131,7 +133,8 @@ def upload_command(args):
     deps = project.derived_dependencies(destination_portal)
 
     remaps = project.service_remaps(destination_portal)
-
+    
+    dep_portal_id = None
     for dep in deps:
 
         print(remaps)
@@ -157,6 +160,12 @@ def upload_command(args):
         #function in here.  set_dependencies function needs to take a
         #string and return a changed string
         desc_str = relabeller(remaps, portal_data.desc_str)
+
+        item_data = data_str
+        if('itemId' in data_str):
+                jsondata = json.loads(data_str)
+                jsondata['map']['itemId'] = dep_portal_id
+                item_data = json.dumps(jsondata) 
         
         dest_portal_data = PortalData(descripto['name'],
                                       title,
@@ -164,14 +173,32 @@ def upload_command(args):
                                       descripto['id'],
                                       descripto,
                                       desc_str,
-                                      data_str,
-                                      local_item['thumbnail_str'])
+                                      item_data,
+                                      local_item['thumbnail_str'])      
         
         wins, fails, length, portal_id = upload_items(destination_portal, [dest_portal_data])
 
         # add new portal_id to list of remaps
         if portal_id:
-            remaps.append((create_dep_id_var(dep['depId']), portal_id))
+            #remaps.append((create_dep_id_var(dep['depId']), portal_id))
+            dep_portal_id = portal_id
+
+            # patch portal item by updating desc
+            #get item info
+            portalUrl, token = destination_portal
+            item_desc = get_item_description(portal_id, portalUrl, token)
+            item_desc_json = json.loads(item_desc)
+
+            if(descripto['type'] == 'Web Mapping Application'):
+                #set url to current env...old url gets copied and need to be replaced
+                item_desc_json['url'] = portalUrl + "/apps/webappviewer/index.html?id=" + portal_id
+                
+            # add publishId to destination
+            
+            publishId = {'publishId' : str(helper.genPublishId())}
+            item_desc_json['properties'] =   publishId
+            update_item_request(destination_portal, portal_id, item_desc_json)
+
         else:
             print("Error: upload to destination portal returned no id!")
             

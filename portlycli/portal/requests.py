@@ -41,8 +41,7 @@ def get_item_description(itemId, portalUrl, token):
     response = urlopen(portalUrl + "/sharing/rest/content/items/" +
                               itemId + "?" + parameters).read()
     return response
-
-
+    
 def __search__(portal, query=None, numResults=100, sortField='numviews',
                sortOrder='desc', start=0, token=None):
     '''Retrieve a single page of search results.'''
@@ -58,6 +57,7 @@ def __search__(portal, query=None, numResults=100, sortField='numviews',
         # Adding a token provides an authenticated search.
         params['token'] = token
     request = portal + '/sharing/rest/search?' + urlencode(params)
+    print(request)
     results = json.loads(urlopen(request).read())
     return results
 
@@ -133,6 +133,7 @@ def get_item_data(itemId, portalUrl, token):
                                    'f' : 'json'})
     response = urlopen(portalUrl + "/sharing/rest/content/items/" +
                               itemId + "/data?" + parameters).read()
+    print(portalUrl + "/sharing/rest/content/items/" +itemId)
     return response
 
 
@@ -140,8 +141,14 @@ def get_item(itemId, authenticatedPortal):
     sourcePortal, sourceToken = authenticatedPortal
     
     desc = get_item_description(itemId, sourcePortal, sourceToken)
-    data = get_item_data(itemId, sourcePortal, sourceToken)
+    data = get_item_data(itemId, sourcePortal, sourceToken)    
+    with open('data.json', 'w') as outfile:
+        json.dump(json.loads(data), outfile)
+    
     descripto = json.loads(desc)
+    with open('desc.json', 'w') as outfile:
+        json.dump(descripto, outfile)
+
     title = descripto['title']
     thumbnail = descripto['thumbnail']
     
@@ -198,7 +205,15 @@ def no_nones(d):
         if value is None:
             d[key] = ''
     return d
-        
+
+def update_copy_items(items, source_portal_url, dest_portal_url):
+    for item in items:
+        item_data = item.data.decode()
+        if "qportal.information" in item_data:
+            item_data.replace("qportal.information.qld.gov.au",dest_portal_url)
+            print("found")
+        else:
+            print("not found")
 
 def update_item_request(authenticated_portal, item_id, them_changes):
 
@@ -309,6 +324,7 @@ def upload_items(authenticated_portal, portal_data):
     fails = 0    
     for d in portal_data:
         try:
+            
             status = add_item(owner, folder,
                               d.desc_str, d.data,
                               portalUrl, token, d.thumbnail_url)

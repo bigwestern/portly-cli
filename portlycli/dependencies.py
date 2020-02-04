@@ -202,5 +202,4 @@ class Graph(object):
             
     def create_relabeller(self):
         remaps = self.create_remapping_list()
-        print(remaps)
         return partial(relabeller, remaps)
