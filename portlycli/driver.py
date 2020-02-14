@@ -5,7 +5,8 @@ import re
 
 from portlycli.portal.requests import generate_token
 from portlycli.portal.requests import search_portal, list_items, get_item_description, update_item_request
-from portlycli.portal.requests import get_items, upload_items, update_item, update_copy_items
+from portlycli.portal.requests import get_items, upload_items, update_item
+
 from portlycli.config import loader, find_config
 from portlycli.files import item_to_file, get_download_path, to_csv, file_to_item
 from portlycli.dependencies import find_dependencies, Graph, set_dependencies, create_setvars, relabeller, create_dep_id_var
@@ -15,7 +16,8 @@ from portlycli.project import Project
 import portlycli.session as session
 import portlycli.defaults as defaults
 
-import portlycli.helper as helper
+import portlycli.publish as publisher
+from jsonmerge import merge
 
 # FIXME: rmeove these deps to somewhere else
 import json
@@ -47,7 +49,11 @@ def info_command(args):
 def list_command(args):
     source_creds = session.config.creds[args.env]
     sourcePortal = generate_token(source_creds)
-    items = list_items(sourcePortal, args.query)
+    
+    query = publisher.getQuery(args)
+
+    items = list_items(sourcePortal, query)
+
     # only write out a subset of interesting columns from the listed items
     interesting = [t[:4] for t in items]
     if args.csvfile:
@@ -63,11 +69,11 @@ def download_command(args):
     # create directory
     #download_path = get_download_path(session.config.downloads, source_portal)
     download_path = get_download_path(session.config.downloads)
-    print(download_path)
+    
     os.makedirs(download_path, exist_ok=True)
     
     # Get a list of the content matching the query.
-    content = search_portal(source_portal, query=args.query)
+    content = search_portal(source_portal, query=publisher.getQuery(args))
 
     # store all content locally
     portal_data = get_items(source_portal, content)
@@ -82,7 +88,7 @@ def download_command(args):
         
         for node in graph.postorder():
             item = node['portal_data']
-            print(item.type)            
+
             files = item_to_file(download_path, item.title, item, relabeller, setvars)
             node['files'] = files
             
@@ -125,22 +131,22 @@ def copy_command(args):
     return portal_data
 
 def upload_command(args):
+    
     destination_creds = session.config.creds[args.env]
     destination_portal = generate_token(destination_creds)
-
+    
     project = session.project
 
     deps = project.derived_dependencies(destination_portal)
-
+    
     remaps = project.service_remaps(destination_portal)
     
-    dep_portal_id = None
+    source_dest_ids = {}
+    
     for dep in deps:
-
-        print(remaps)
-        
+        print(dep)
         local_item = file_to_item(dep['files'])
-
+        
         descripto = json.loads(local_item['desc_str'])
         title = descripto['title']
         thumbnail = descripto['thumbnail']
@@ -161,47 +167,63 @@ def upload_command(args):
         #string and return a changed string
         desc_str = relabeller(remaps, portal_data.desc_str)
 
-        item_data = data_str
-        if('itemId' in data_str):
-                jsondata = json.loads(data_str)
-                jsondata['map']['itemId'] = dep_portal_id
-                item_data = json.dumps(jsondata) 
-        
+        itemdata = json.loads(data_str)
+        if(descripto['type'] == 'Web Mapping Application'):                        
+            mapId = itemdata['map']['itemId']
+            itemdata['map']['itemId'] = source_dest_ids[mapId]
+
+        # remove publishId key from dep files before add/update
+        if 'publishId' in descripto:
+            del descripto['publishId']
+        if 'publishId' in itemdata:
+            del itemdata['publishId']
+
+        # merge user provided changes to portal item
+        itemconfigs = publisher.get_user_configs(dep, args.env)
+
+        descripto = merge(descripto, itemconfigs['desc'])
+        itemdata = merge(itemdata,itemconfigs['data'])
+
         dest_portal_data = PortalData(descripto['name'],
                                       title,
                                       descripto['type'],
                                       descripto['id'],
                                       descripto,
                                       desc_str,
-                                      item_data,
-                                      local_item['thumbnail_str'])      
-        
-        wins, fails, length, portal_id = upload_items(destination_portal, [dest_portal_data])
+                                      json.dumps(itemdata),
+                                      local_item['thumbnail_str'])    
 
+        
+        portal_id = publisher.check_publishId_exists(destination_portal, dep['depId'], destination_creds.user) 
+        
+        wins = fails = length = None
+        if not portal_id:
+            wins, fails, length, portal_id = upload_items(destination_portal, [dest_portal_data]) 
+        else:
+            update_item_request(destination_portal,portal_id,
+                                        {'text': itemdata,**descripto})
+                                    
+            
         # add new portal_id to list of remaps
         if portal_id:
             #remaps.append((create_dep_id_var(dep['depId']), portal_id))
-            dep_portal_id = portal_id
+            source_dest_ids[create_dep_id_var(dep['depId'])] = portal_id
 
-            # patch portal item by updating desc
-            #get item info
-            portalUrl, token = destination_portal
-            item_desc = get_item_description(portal_id, portalUrl, token)
-            item_desc_json = json.loads(item_desc)
+            # add publishId to source
+            # dep id is the publish Id
+            publisher.add_publishId_to_source(dep, dep['depId'])
+            publisher.add_publishId(destination_portal, portal_id, dep['depId'])
 
             if(descripto['type'] == 'Web Mapping Application'):
                 #set url to current env...old url gets copied and need to be replaced
+                portalUrl, token = destination_portal
+                item_desc = get_item_description(portal_id, portalUrl, token)
+                item_desc_json = json.loads(item_desc)
                 item_desc_json['url'] = portalUrl + "/apps/webappviewer/index.html?id=" + portal_id
-                
-            # add publishId to destination
-            
-            publishId = {'publishId' : str(helper.genPublishId())}
-            item_desc_json['properties'] =   publishId
-            update_item_request(destination_portal, portal_id, item_desc_json)
-
+                update_item_request(destination_portal, portal_id, item_desc_json)
+       
         else:
             print("Error: upload to destination portal returned no id!")
-            
 
 def retrieve_deps(source_portal, portal_data, last_parent=None):
 
@@ -274,8 +296,7 @@ def origin_command(args):
     if args.action == 'fetch':
 
         service_deps = project.all_dependencies(dest_portal)
-        print(service_deps)
-
+        
         dest_ids = []
         
         for dep in service_deps:
@@ -320,7 +341,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-c','--config', dest='conf_path', default=None)
-    
+        
     subparsers = parser.add_subparsers()
 
     parser_template = subparsers.add_parser('template')
@@ -335,6 +356,8 @@ def main():
     parser_list = subparsers.add_parser('list')
     parser_list.add_argument('env')
     parser_list.add_argument('-q', '--query', dest='query', default=None)
+    parser_list.add_argument('-i','--jsonfile', nargs='?', 
+                        help='Read item IDs from json file specified')
     parser_list.add_argument('-o','--csvfile', nargs='?',
                         help='Write items out to csv file specified')    
     parser_list.set_defaults(func=list_command,parser_name='list')
@@ -342,6 +365,8 @@ def main():
     parser_download = subparsers.add_parser('download')
     parser_download.add_argument('env')
     parser_download.add_argument('-q', '--query', dest='query', default=None)
+    parser_download.add_argument('-i','--jsonfile', nargs='?',
+                        help='Read item IDs from json file specified', default=None)
     parser_download.add_argument('-d', '--with-dependencies', dest='deps', action='store_true')    
     parser_download.set_defaults(func=download_command,parser_name='download')
 
@@ -362,7 +387,7 @@ def main():
     parser_origin.set_defaults(func=origin_command,parser_name='origin')
 
     parser_upload = subparsers.add_parser('upload')
-    parser_upload.add_argument('env')    
+    parser_upload.add_argument('env') 
     parser_upload.set_defaults(func=upload_command,parser_name='upload')
 
     args = parser.parse_args()

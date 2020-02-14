@@ -93,7 +93,7 @@ def set_webapp_dependencies(dest_portal, portal_data, remaps):
     webapp['appItemId'] = ""
     
     s = json.dumps(webapp, indent=2)
-    print(s)
+    
     return json.dumps(webapp)
         
 def set_webmap_dependencies(dest_portal, portal_data, remaps):
@@ -103,10 +103,22 @@ def unknown_set_dependencies(portal_data):
     print("No known way to set dependencies of type:'%s'" % (portal_data.type))
     return portal_data
 
+def set_feature_service_dependencies(dest_portal, portal_data, remaps):
+    return relabeller(remaps, portal_data.data)
+
+def set_vts_dependencies(dest_portal, portal_data, remaps):
+    return relabeller(remaps, portal_data.data)
+
+def set_map_service_dependencies(dest_portal, portal_data, remaps):
+    return relabeller(remaps, portal_data.data)
+
 def set_dependencies(dest_portal, portal_data, remaps):
     task = {
         'Web Mapping Application': set_webapp_dependencies,
-        'Web Map': set_webmap_dependencies
+        'Web Map': set_webmap_dependencies,
+        'Vector Tile Service': set_vts_dependencies,
+        'Feature Service' : set_feature_service_dependencies,
+        'Map Service': set_map_service_dependencies
     }
     try:
         return task[portal_data.type](dest_portal, portal_data, remaps)
@@ -118,8 +130,18 @@ class Graph(object):
     
     graph = nx.DiGraph()
 
-    def generate_id(self):
-        return str(uuid.uuid4())[:8]
+    def generate_id(self, item):
+        # check if item has publish id
+        publishId = None
+        
+        if 'publishId' in item.desc['properties']:
+            print("publishId exists for this item")
+            publishId = item.desc['properties']['publishId']
+        else:
+            print("new publishId for this item")
+            publishId = str(uuid.uuid1())
+        
+        return publishId
     
     def find_node_by_portal_id(self, id):
         for n in self.graph.nodes(data=True):
@@ -134,7 +156,7 @@ class Graph(object):
         if dep_id:
             print("item '%s' (dep id: '%s') with id %s already exists in graph." % (item.title, dep_id, item.id))
         else:
-            dep_id = self.generate_id()
+            dep_id = self.generate_id(item)
             print("adding new item: %s" % (item.id))
             self.graph.add_node(dep_id,
                                 dep_id=dep_id,
@@ -156,7 +178,7 @@ class Graph(object):
         return self.graph
         
     def add_root(self, item):
-        dep_id = self.generate_id()
+        dep_id = self.generate_id(item)
         print("add root '%s'" % (dep_id))
         self.graph.add_node(dep_id,
                             dep_id=dep_id,

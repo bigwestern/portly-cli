@@ -32,15 +32,6 @@ def generate_token(creds):
                 print(detail)
     except ValueError:
         print('An unspecified error occurred.')
-
-
-def get_item_description(itemId, portalUrl, token):
-    '''Returns the description for a Portal for ArcGIS item.'''
-    parameters = urlencode({'token' : token,
-                                   'f' : 'json'})
-    response = urlopen(portalUrl + "/sharing/rest/content/items/" +
-                              itemId + "?" + parameters).read()
-    return response
     
 def __search__(portal, query=None, numResults=100, sortField='numviews',
                sortOrder='desc', start=0, token=None):
@@ -57,7 +48,7 @@ def __search__(portal, query=None, numResults=100, sortField='numviews',
         # Adding a token provides an authenticated search.
         params['token'] = token
     request = portal + '/sharing/rest/search?' + urlencode(params)
-    print(request)
+    
     results = json.loads(urlopen(request).read())
     return results
 
@@ -133,7 +124,6 @@ def get_item_data(itemId, portalUrl, token):
                                    'f' : 'json'})
     response = urlopen(portalUrl + "/sharing/rest/content/items/" +
                               itemId + "/data?" + parameters).read()
-    print(portalUrl + "/sharing/rest/content/items/" +itemId)
     return response
 
 
@@ -141,14 +131,10 @@ def get_item(itemId, authenticatedPortal):
     sourcePortal, sourceToken = authenticatedPortal
     
     desc = get_item_description(itemId, sourcePortal, sourceToken)
+
     data = get_item_data(itemId, sourcePortal, sourceToken)    
-    with open('data.json', 'w') as outfile:
-        json.dump(json.loads(data), outfile)
     
     descripto = json.loads(desc)
-    with open('desc.json', 'w') as outfile:
-        json.dump(descripto, outfile)
-
     title = descripto['title']
     thumbnail = descripto['thumbnail']
     
@@ -206,15 +192,6 @@ def no_nones(d):
             d[key] = ''
     return d
 
-def update_copy_items(items, source_portal_url, dest_portal_url):
-    for item in items:
-        item_data = item.data.decode()
-        if "qportal.information" in item_data:
-            item_data.replace("qportal.information.qld.gov.au",dest_portal_url)
-            print("found")
-        else:
-            print("not found")
-
 def update_item_request(authenticated_portal, item_id, them_changes):
 
     portal_url, token = authenticated_portal
@@ -253,9 +230,7 @@ def update_item(authenticated_portal, item_id, them_changes):
         status = update_item_request(authenticated_portal,
                                      item_id,
                                      them_changes)
-        print(status)
         result = json.loads(status)
-        print(result)
         if 'success' in result:
             print('successfully updated "%s"' % (item_id))
             portal_id = result['id']
@@ -311,7 +286,6 @@ def add_item(username, folder, description, data, portalUrl, token, thumbnailUrl
     response = urlopen(req).read()
     return response
 
-
 def upload_items(authenticated_portal, portal_data):
     portalUrl, token = authenticated_portal
 
@@ -328,11 +302,10 @@ def upload_items(authenticated_portal, portal_data):
             status = add_item(owner, folder,
                               d.desc_str, d.data,
                               portalUrl, token, d.thumbnail_url)
-            print(status)
             result = json.loads(status)
 
             portal_id = None
-            print(result)
+            
             if 'success' in result:
                 wins += 1                
                 print('successfully copied "%s": "%s"' % (d.type, d.title))
@@ -352,3 +325,5 @@ def upload_items(authenticated_portal, portal_data):
             print(e.message)
 
         return (wins, fails, len(portal_data), portal_id)
+
+

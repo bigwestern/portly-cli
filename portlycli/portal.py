@@ -119,14 +119,6 @@ def list_items(authenticatedPortal, searchQuery):
         
     return items
 
-def get_item_description(itemId, portalUrl, token):
-    '''Returns the description for a Portal for ArcGIS item.'''
-    parameters = urlencode({'token' : token,
-                                   'f' : 'json'})
-    response = urlopen(portalUrl + "/sharing/rest/content/items/" +
-                              itemId + "?" + parameters).read()
-    return response
-
 def get_item_data(itemId, portalUrl, token):
     '''Returns the description for a Portal for ArcGIS item.'''
     parameters = urlencode({'token' : token,

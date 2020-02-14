@@ -43,6 +43,12 @@ class Config(object):
     def get_owner_by_env(self, env):
         credentials = self.creds[env]
         return credentials.user
+    
+    def get_env_from_url(self, url):
+       for env in self.portal_envs:
+            if(self.creds[env].url == url):
+                return env
+
 
 
 def find_file_in_syspath(fn):

@@ -94,7 +94,7 @@ class Project(object):
 
     def add_dependencies(self, nodes, source_portal, source_creds):
         self.dependencies = create_deps_list(nodes, source_portal, source_creds)
-        print(self.dependencies)
+        
         
     def add_origin(self, dest_portal, dest_creds):
 
@@ -111,7 +111,7 @@ class Project(object):
             else:
                 print("No source origins for dependency.  Have you downloaded anything yet?")
 
-        print(self.dependencies)
+        
         
 
     def update_portal_ids(self, dest_portal, dep_id_mapping):
@@ -173,8 +173,7 @@ class Project(object):
         for dep in self.dependencies:
             dest_origins = [o for o in dep['origins'] if o['portal']['url'] is not dest_portal.url]
             for dest_origin in dest_origins:
-                if dep['itemType'] not in ['Feature Service']:
-                    derived_deps.append(dep)
+                derived_deps.append(dep)
                     
         return derived_deps
     
